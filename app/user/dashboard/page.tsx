@@ -58,72 +58,111 @@ function DashboardSkeleton() {
   )
 }
 
-const supabase = createClient()
-
 export default function UserDashboardPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [profileName, setProfileName] = useState("")
   const [stats, setStats] = useState({ vehicles: 0, tickets: 0, unpaid: 0, pending: 0 })
   const [recentTickets, setRecentTickets] = useState<TicketWithRelations[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    try {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-    if (!user) {
-      router.replace("/auth/user/login")
-      return
-    }
+      if (!user) {
+        router.replace("/auth/user/login")
+        return
+      }
 
-    setProfileName(user.user_metadata?.full_name || "User")
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single()
 
-    const [vehiclesRes, ticketsRes] = await Promise.all([
-      supabase.from("vehicles").select("id").eq("user_id", user.id),
-      supabase
+      if (profileError || !profileData) {
+        router.replace("/auth/user/login")
+        return
+      }
+
+      if (profileData.role !== "user") {
+        await supabase.auth.signOut()
+        router.replace("/auth/user/login")
+        return
+      }
+
+      setProfileName(profileData.full_name || user.user_metadata?.full_name || "User")
+
+      const [vehiclesRes, ticketsRes] = await Promise.all([
+        supabase.from("vehicles").select("id", { count: "exact" }).eq("user_id", user.id),
+        supabase
+          .from("tickets")
+          .select(
+            "id, ticket_code, ticket_date, location, fine_amount, status, vehicle:vehicles(plate_number), violation:violations(name)",
+          )
+          .eq("user_id", user.id)
+          .order("ticket_date", { ascending: false })
+          .limit(5),
+      ])
+
+      const tickets = (ticketsRes.data || []) as TicketWithRelations[]
+
+      const { count: unpaidCount } = await supabase
         .from("tickets")
-        .select(
-          "id, ticket_code, ticket_date, location, fine_amount, status, vehicle:vehicles(plate_number), violation:violations(name)",
-        )
+        .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .order("ticket_date", { ascending: false })
-        .limit(5),
-    ])
+        .eq("status", "unpaid")
 
-    const tickets = (ticketsRes.data || []) as TicketWithRelations[]
+      const { count: pendingCount } = await supabase
+        .from("tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "pending_confirmation")
 
-    const { count: unpaidCount } = await supabase
-      .from("tickets")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "unpaid")
+      const { count: totalTickets } = await supabase
+        .from("tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
 
-    const { count: pendingCount } = await supabase
-      .from("tickets")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "pending_confirmation")
+      setStats({
+        vehicles: vehiclesRes.count || 0,
+        tickets: totalTickets || 0,
+        unpaid: unpaidCount || 0,
+        pending: pendingCount || 0,
+      })
 
-    const { count: totalTickets } = await supabase
-      .from("tickets")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-
-    setStats({
-      vehicles: vehiclesRes.data?.length || 0,
-      tickets: totalTickets || 0,
-      unpaid: unpaidCount || 0,
-      pending: pendingCount || 0,
-    })
-
-    setRecentTickets(tickets)
-    setIsLoading(false)
+      setRecentTickets(tickets)
+      setError(null)
+    } catch (err) {
+      console.error("[v0] Dashboard load error:", err)
+      setError("Gagal memuat data dashboard")
+    } finally {
+      setIsLoading(false)
+    }
   }, [router])
 
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <p className="text-destructive">{error}</p>
+            <Button onClick={() => loadData()} className="mt-4 w-full">
+              Coba Lagi
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (isLoading) return <DashboardSkeleton />
 

@@ -178,6 +178,89 @@
   }
 }
 
+@layer utilities {
+  /* Add missing slide-in-from animations for UI components */
+  @keyframes slide-in-from-top {
+    from {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes slide-in-from-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes slide-in-from-bottom {
+    from {
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes slide-in-from-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+
+  @keyframes slide-out-to-right {
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes slide-out-to-left {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  @keyframes slide-out-to-top {
+    to {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes slide-out-to-bottom {
+    to {
+      transform: translateY(100%);
+    }
+  }
+
+  .animate-slide-in-from-top {
+    animation: slide-in-from-top 0.3s ease-out;
+  }
+
+  .animate-slide-in-from-right {
+    animation: slide-in-from-right 0.3s ease-out;
+  }
+
+  .animate-slide-in-from-bottom {
+    animation: slide-in-from-bottom 0.3s ease-out;
+  }
+
+  .animate-slide-in-from-left {
+    animation: slide-in-from-left 0.3s ease-out;
+  }
+
+  .animate-slide-out-to-right {
+    animation: slide-out-to-right 0.3s ease-in;
+  }
+
+  .animate-slide-out-to-left {
+    animation: slide-out-to-left 0.3s ease-in;
+  }
+
+  .animate-slide-out-to-top {
+    animation: slide-out-to-top 0.3s ease-in;
+  }
+
+  .animate-slide-out-to-bottom {
+    animation: slide-out-to-bottom 0.3s ease-in;
+  }
+}
+
 /* Added safe area padding for mobile notch/home indicator */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .pb-safe {

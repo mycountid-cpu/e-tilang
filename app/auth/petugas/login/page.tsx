@@ -28,12 +28,17 @@ export default function PetugasLoginPage() {
     setError(null)
 
     try {
+      console.log("[v0] Login attempt with email:", email)
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log("[v0] Sign in response - error:", signInError, "data:", data)
+
       if (signInError) {
+        console.log("[v0] Sign in error occurred:", signInError.message)
         if (signInError.message === "Invalid login credentials") {
           throw new Error("Email atau password salah")
         }
@@ -41,17 +46,22 @@ export default function PetugasLoginPage() {
       }
 
       if (data.user) {
+        console.log("[v0] User signed in successfully:", data.user.id)
         const roleFromMetadata = data.user.user_metadata?.role
 
-        if (roleFromMetadata) {
-          if (roleFromMetadata !== "petugas") {
-            await supabase.auth.signOut()
-            setError("Akun ini bukan akun petugas. Silakan gunakan portal masyarakat.")
-            return
-          }
-        } else {
+        if (!roleFromMetadata) {
           try {
-            const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single()
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", data.user.id)
+              .single()
+
+            console.log("[v0] Profile query result - error:", profileError, "profile:", profile)
+
+            if (profileError) {
+              console.log("[v0] Profile query failed, continuing with metadata role check")
+            }
 
             if (profile && profile.role !== "petugas") {
               await supabase.auth.signOut()
@@ -59,11 +69,16 @@ export default function PetugasLoginPage() {
               return
             }
           } catch (profileErr) {
-            // Continue login even if profile check fails
+            console.log("[v0] Profile check failed silently, allowing login to proceed")
           }
+        } else if (roleFromMetadata !== "petugas") {
+          await supabase.auth.signOut()
+          setError("Akun ini bukan akun petugas. Silakan gunakan portal masyarakat.")
+          return
         }
       }
 
+      console.log("[v0] Login successful, redirecting to dashboard")
       toast({
         title: "Login berhasil",
         description: "Selamat datang kembali!",
@@ -72,6 +87,7 @@ export default function PetugasLoginPage() {
       router.replace("/petugas/dashboard")
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat login"
+      console.log("[v0] Login error caught:", errorMessage)
       setError(errorMessage)
     } finally {
       setIsLoading(false)

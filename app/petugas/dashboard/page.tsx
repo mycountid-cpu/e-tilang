@@ -76,32 +76,39 @@ export default function PetugasDashboardPage() {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      const [profileRes, allTicketsRes, todayTicketsRes, recentRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
-        supabase.from("tickets").select("id, status"),
-        supabase.from("tickets").select("id").gte("ticket_date", today.toISOString()),
-        supabase
-          .from("tickets")
-          .select(
-            "id, ticket_code, ticket_date, location, fine_amount, status, vehicle:vehicles(plate_number), violation:violations(name), user:profiles!tickets_user_id_fkey(full_name)",
-          )
-          .order("ticket_date", { ascending: false })
-          .limit(5),
-      ])
+      try {
+        const [profileRes, allTicketsRes, todayTicketsRes, recentRes] = await Promise.all([
+          supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
+          supabase.from("tickets").select("id, status"),
+          supabase.from("tickets").select("id").gte("ticket_date", today.toISOString()),
+          supabase
+            .from("tickets")
+            .select(
+              "id, ticket_code, ticket_date, location, fine_amount, status, vehicle:vehicles(plate_number), violation:violations(name), user:profiles!tickets_user_id_fkey(full_name)",
+            )
+            .order("ticket_date", { ascending: false })
+            .limit(5),
+        ])
 
-      setProfileName(profileRes.data?.full_name || user!.user_metadata?.full_name || "Petugas")
+        setProfileName(profileRes?.data?.full_name || user!.user_metadata?.full_name || "Petugas")
 
-      const allTickets = allTicketsRes.data || []
-      setStats({
-        total: allTickets.length,
-        today: todayTicketsRes.data?.length || 0,
-        paid: allTickets.filter((t) => t.status === "paid").length,
-        unpaid: allTickets.filter((t) => t.status === "unpaid").length,
-        pending: allTickets.filter((t) => t.status === "pending_confirmation").length,
-      })
+        const allTickets = allTicketsRes?.data || []
+        setStats({
+          total: allTickets.length,
+          today: todayTicketsRes?.data?.length || 0,
+          paid: allTickets.filter((t) => t.status === "paid").length,
+          unpaid: allTickets.filter((t) => t.status === "unpaid").length,
+          pending: allTickets.filter((t) => t.status === "pending_confirmation").length,
+        })
 
-      setRecentTickets((recentRes.data || []) as TicketWithRelations[])
-      setIsLoading(false)
+        setRecentTickets((recentRes?.data || []) as TicketWithRelations[])
+      } catch (error) {
+        console.error("[v0] Dashboard data load error:", error)
+        // Set fallback name from auth metadata if profile query fails
+        setProfileName(user!.user_metadata?.full_name || "Petugas")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     loadData()
@@ -268,11 +275,15 @@ export default function PetugasDashboardPage() {
                           ticket.status === "paid"
                             ? "bg-success/10 text-success"
                             : ticket.status === "pending_confirmation"
-                            ? "bg-warning/10 text-warning"
-                            : "bg-destructive/10 text-destructive",
+                              ? "bg-warning/10 text-warning"
+                              : "bg-destructive/10 text-destructive",
                         )}
                       >
-                        {ticket.status === "paid" ? "Lunas" : ticket.status === "pending_confirmation" ? "Menunggu Verifikasi" : "Belum Dibayar"}
+                        {ticket.status === "paid"
+                          ? "Lunas"
+                          : ticket.status === "pending_confirmation"
+                            ? "Menunggu Verifikasi"
+                            : "Belum Dibayar"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground md:text-sm">

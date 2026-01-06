@@ -41,8 +41,6 @@ export default function UserLoginPage() {
     }
 
     try {
-      const { data: profileData } = await supabase.from("profiles").select("id, role").eq("role", "user").limit(1)
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No bucket specified" }, { status: 400 })
     }
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
       cookies: {
         getAll() {
@@ -39,15 +39,10 @@ export async function POST(request: NextRequest) {
     const fileName = `${uniqueId}-${Date.now()}.${fileExt}`
     const filePath = `${bucket === "evidence" ? "evidence" : "payment-proofs"}/${fileName}`
 
-    const uploadController = new AbortController()
-    const uploadTimeout = setTimeout(() => uploadController.abort(), 30000) // 30 second timeout
-
     const { error: uploadError, data } = await supabase.storage.from(bucket).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
     })
-
-    clearTimeout(uploadTimeout)
 
     if (uploadError) {
       console.error("[v0] Storage upload error:", uploadError)

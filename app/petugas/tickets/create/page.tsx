@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ViolationModal } from "@/components/violation-modal"
 import { ArrowLeft, AlertCircle, Camera, ImageIcon as ImageIconLucide } from "lucide-react"
 import Link from "next/link"
 import type { Profile, Vehicle, Violation } from "@/lib/types"
@@ -19,6 +19,8 @@ export default function CreateTicketPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isFetchingUsers, setIsFetchingUsers] = useState(true)
+
+  const [isViolationModalOpen, setIsViolationModalOpen] = useState(false)
 
   // Data lists
   const [users, setUsers] = useState<Profile[]>([])
@@ -130,17 +132,17 @@ export default function CreateTicketPage() {
       }
       reader.readAsDataURL(file)
 
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("bucket", "evidence")
-      formData.append("petugas_id", user.id)
+      const formDataToUpload = new FormData()
+      formDataToUpload.append("file", file)
+      formDataToUpload.append("bucket", "evidence")
+      formDataToUpload.append("petugas_id", user.id)
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 30000)
 
       const uploadResponse = await fetch("/api/upload-evidence", {
         method: "POST",
-        body: formData,
+        body: formDataToUpload,
         signal: controller.signal,
       })
 
@@ -209,6 +211,10 @@ export default function CreateTicketPage() {
     }
 
     router.push("/petugas/tickets")
+  }
+
+  const handleViolationSelect = (violation: Violation) => {
+    setFormData((prev) => ({ ...prev, violationId: violation.id }))
   }
 
   return (
@@ -297,36 +303,61 @@ export default function CreateTicketPage() {
               <Label htmlFor="violationId" className="text-sm font-medium">
                 Jenis Pelanggaran
               </Label>
-              <Select
-                required
-                value={formData.violationId}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    violationId: value,
-                  })
-                }
-              >
-                <SelectTrigger className="h-11 md:h-10">
-                  <SelectValue placeholder="Pilih pelanggaran" />
-                </SelectTrigger>
-                <SelectContent className="max-w-[280px] md:max-w-full">
-                  {violations.map((violation) => (
-                    <SelectItem key={violation.id} value={violation.id} className="truncate text-xs md:text-sm">
-                      {violation.name} ({violation.article}) - Rp {violation.max_fine.toLocaleString("id-ID")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedViolation && (
-                <div className="rounded-lg bg-primary/5 p-3 text-sm">
-                  <p className="font-medium text-primary text-xs md:text-sm">{selectedViolation.article}</p>
-                  <p className="text-primary/80 text-xs md:text-sm">
-                    Denda Maksimal: Rp {selectedViolation.max_fine.toLocaleString("id-ID")}
-                  </p>
-                </div>
-              )}
+
+              {/* Desktop version: Keep original Select */}
+              <div className="hidden md:block">
+                <Select
+                  required
+                  value={formData.violationId}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      violationId: value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-11 md:h-10">
+                    <SelectValue placeholder="Pilih pelanggaran" />
+                  </SelectTrigger>
+                  <SelectContent className="max-w-[280px] md:max-w-full">
+                    {violations.map((violation) => (
+                      <SelectItem key={violation.id} value={violation.id} className="truncate text-xs md:text-sm">
+                        {violation.name} ({violation.article}) - Rp {violation.max_fine.toLocaleString("id-ID")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Mobile version: Button to open modal */}
+              <div className="md:hidden">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 justify-start text-left font-normal bg-transparent"
+                  onClick={() => setIsViolationModalOpen(true)}
+                >
+                  {selectedViolation ? selectedViolation.name : "Pilih pelanggaran"}
+                </Button>
+              </div>
+
+              {/* Violation Modal */}
+              <ViolationModal
+                isOpen={isViolationModalOpen}
+                violations={violations}
+                onSelect={handleViolationSelect}
+                onClose={() => setIsViolationModalOpen(false)}
+              />
             </div>
+
+            {selectedViolation && (
+              <div className="rounded-lg bg-primary/5 p-3 text-sm">
+                <p className="font-medium text-primary text-xs md:text-sm">{selectedViolation.article}</p>
+                <p className="text-primary/80 text-xs md:text-sm">
+                  Denda Maksimal: Rp {selectedViolation.max_fine.toLocaleString("id-ID")}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="location" className="text-sm font-medium">

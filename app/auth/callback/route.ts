@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       if (user) {
         const role = user.user_metadata?.role
 
+        // Redirect based on role
         if (role === "petugas") {
           return NextResponse.redirect(`${origin}/petugas/dashboard`)
         }
@@ -29,5 +30,6 @@ export async function GET(request: Request) {
     }
   }
 
+  // Return to error page if code exchange fails
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }

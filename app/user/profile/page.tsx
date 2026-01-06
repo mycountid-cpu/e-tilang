@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { User, Mail, Phone, CreditCard, Pencil, MapPin } from "lucide-react"
+import Link from "next/link"
 
 export default async function UserProfilePage() {
   const supabase = await createClient()
@@ -107,9 +108,11 @@ export default async function UserProfilePage() {
 
             {/* Edit Button */}
             <div className="flex justify-center pt-4">
-              <Button className="gap-2">
-                <Pencil className="h-4 w-4" />
-                Edit Profil
+              <Button asChild>
+                <Link href="/user/profile/edit" className="gap-2">
+                  <Pencil className="h-4 w-4" />
+                  Edit Profil
+                </Link>
               </Button>
             </div>
           </div>

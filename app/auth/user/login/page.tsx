@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { validateEmail, validatePassword, triggerVibration } from "@/lib/validation"
 
 export default function UserLoginPage() {
   const [email, setEmail] = useState("")
@@ -26,19 +27,56 @@ export default function UserLoginPage() {
     setIsLoading(true)
     setError(null)
 
+    // Validate email and password
+    if (!validateEmail(email)) {
+      setError("Email tidak valid.")
+      setIsLoading(false)
+      return
+    }
+
+    if (!validatePassword(password)) {
+      setError("Password tidak valid.")
+      setIsLoading(false)
+      return
+    }
+
     try {
+      const { data: profileData } = await supabase.from("profiles").select("id, role").eq("role", "user").limit(1)
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        triggerVibration()
+        if (error.message.includes("Invalid") || error.message.includes("invalid")) {
+          setError("Email atau password salah. Jika belum punya akun, silakan daftar terlebih dahulu.")
+        } else {
+          setError(error.message)
+        }
+        throw error
+      }
 
       if (data.user) {
-        const roleFromMetadata = data.user.user_metadata?.role
+        const { data: userProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, role")
+          .eq("id", data.user.id)
+          .single()
+
+        if (profileError || !userProfile) {
+          await supabase.auth.signOut()
+          triggerVibration()
+          setError("Akun belum terdaftar. Silakan lengkapi proses pendaftaran Anda.")
+          return
+        }
+
+        const roleFromMetadata = userProfile.role
 
         if (roleFromMetadata && roleFromMetadata !== "user") {
           await supabase.auth.signOut()
+          triggerVibration()
           setError("Akun ini bukan akun masyarakat. Silakan gunakan portal petugas.")
           return
         }
@@ -51,8 +89,8 @@ export default function UserLoginPage() {
         router.replace("/user/dashboard")
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat login"
-      setError(errorMessage)
+      triggerVibration()
+      console.error("[v0] Login error:", error)
     } finally {
       setIsLoading(false)
     }

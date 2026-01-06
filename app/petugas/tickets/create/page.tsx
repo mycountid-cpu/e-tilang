@@ -112,6 +112,17 @@ export default function CreateTicketPage() {
     setError(null)
 
     try {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setError("User tidak ditemukan")
+        setUploading(false)
+        return
+      }
+
       // Create preview
       const reader = new FileReader()
       reader.onloadend = () => {
@@ -122,11 +133,18 @@ export default function CreateTicketPage() {
       const formData = new FormData()
       formData.append("file", file)
       formData.append("bucket", "evidence")
+      formData.append("petugas_id", user.id)
+
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 30000)
 
       const uploadResponse = await fetch("/api/upload-evidence", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       })
+
+      clearTimeout(timeout)
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json()
@@ -135,9 +153,14 @@ export default function CreateTicketPage() {
 
       const { publicUrl } = await uploadResponse.json()
       setFormData((prev) => ({ ...prev, evidencePhoto: publicUrl }))
+      console.log("[v0] Upload successful:", publicUrl)
     } catch (err: any) {
       console.error("[v0] Upload error:", err)
-      setError("Gagal mengupload foto: " + err.message)
+      if (err.name === "AbortError") {
+        setError("Upload timeout - koneksi lambat, coba lagi")
+      } else {
+        setError("Gagal mengupload foto: " + err.message)
+      }
     } finally {
       setUploading(false)
     }

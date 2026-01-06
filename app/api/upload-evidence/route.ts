@@ -1,12 +1,14 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
+import { v4 as uuidv4 } from "uuid"
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File
     const bucket = formData.get("bucket") as string
+    const petugasId = formData.get("petugas_id") as string
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
@@ -32,15 +34,20 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Generate unique filename
     const fileExt = file.name.split(".").pop()
-    const fileName = `${Math.random()}-${Date.now()}.${fileExt}`
+    const uniqueId = uuidv4()
+    const fileName = `${uniqueId}-${Date.now()}.${fileExt}`
     const filePath = `${bucket === "evidence" ? "evidence" : "payment-proofs"}/${fileName}`
+
+    const uploadController = new AbortController()
+    const uploadTimeout = setTimeout(() => uploadController.abort(), 30000) // 30 second timeout
 
     const { error: uploadError, data } = await supabase.storage.from(bucket).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
     })
+
+    clearTimeout(uploadTimeout)
 
     if (uploadError) {
       console.error("[v0] Storage upload error:", uploadError)
@@ -52,6 +59,7 @@ export async function POST(request: NextRequest) {
       data: { publicUrl },
     } = supabase.storage.from(bucket).getPublicUrl(filePath)
 
+    console.log("[v0] File uploaded successfully:", filePath)
     return NextResponse.json({ publicUrl, path: filePath })
   } catch (error: any) {
     console.error("[v0] Upload API error:", error)

@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
 
   const user = session?.user
 
-  // Protect user and petugas routes
+  // Protect user and petugas routes - redirect to login if not authenticated
   if (request.nextUrl.pathname.startsWith("/user") && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/auth/user/login"
@@ -48,27 +48,40 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Only enforce role-based route access for protected routes
   if (user) {
     const role = user.user_metadata?.role
 
-    if (request.nextUrl.pathname.startsWith("/petugas") && role && role !== "petugas") {
+    // Redirect to wrong portal - petugas accessing user routes
+    if (request.nextUrl.pathname.startsWith("/user") && role && role !== "user") {
       const url = request.nextUrl.clone()
       url.pathname = "/user/dashboard"
       return NextResponse.redirect(url)
     }
 
-    if (request.nextUrl.pathname.startsWith("/user") && role && role !== "user") {
+    // Redirect to wrong portal - user accessing petugas routes
+    if (request.nextUrl.pathname.startsWith("/petugas") && role && role !== "petugas") {
       const url = request.nextUrl.clone()
       url.pathname = "/petugas/dashboard"
       return NextResponse.redirect(url)
     }
 
-    if (user && request.nextUrl.pathname.startsWith("/auth")) {
-      const role = user.user_metadata?.role
+    // Only redirect from /auth routes if they're specifically mismatched
+    if (request.nextUrl.pathname.startsWith("/auth/petugas") && role && role !== "petugas") {
+      // Petugas user trying to access user login
       const url = request.nextUrl.clone()
-      url.pathname = role === "petugas" ? "/petugas/dashboard" : "/user/dashboard"
+      url.pathname = "/petugas/dashboard"
       return NextResponse.redirect(url)
     }
+
+    if (request.nextUrl.pathname.startsWith("/auth/user") && role && role !== "user") {
+      // User trying to access petugas login
+      const url = request.nextUrl.clone()
+      url.pathname = "/user/dashboard"
+      return NextResponse.redirect(url)
+    }
+
+    // Don't force redirect from homepage or unrelated pages
   }
 
   return supabaseResponse

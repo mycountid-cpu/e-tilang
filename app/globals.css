@@ -137,6 +137,44 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Add GPU acceleration and smooth scrolling for 60-90fps */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  /* Optimize animations for smooth frame rates */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* GPU-accelerated smooth transitions */
+@layer components {
+  .smooth-transition {
+    @apply transition-all duration-300;
+    will-change: auto;
+  }
+
+  .gpu-accelerated {
+    @apply transform;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
 

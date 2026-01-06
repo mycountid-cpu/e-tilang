@@ -32,6 +32,7 @@ interface PaymentSectionProps {
 const QR_MAPPING: Record<number, string> = {
   250000: "/images/250.jpg",
   500000: "/images/500.jpg",
+  750000: "/images/750.jpg", // Added 750k QRIS code
   1000000: "/images/1.jpg",
 }
 

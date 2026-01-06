@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -80,6 +80,14 @@ export default function PetugasLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-slate-50 to-blue-100 p-6">
+      <Link
+        href="/"
+        title="Halaman Utama"
+        className="absolute left-6 top-6 group inline-flex items-center justify-center h-11 w-11 rounded-full bg-white/80 backdrop-blur-sm text-blue-700 hover:bg-blue-700 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
+      >
+        <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
+      </Link>
+
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">

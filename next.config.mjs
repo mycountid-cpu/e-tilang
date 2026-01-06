@@ -6,6 +6,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  swcMinify: true,
+  compress: true,
+  productionBrowserSourceMaps: false,
+  reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+    scrollRestoration: true,
+  },
 }
 
 export default nextConfig

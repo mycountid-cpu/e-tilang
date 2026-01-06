@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -48,7 +48,7 @@ export default function UserLoginPage() {
           description: "Selamat datang kembali!",
         })
 
-        router.push("/user/dashboard")
+        router.replace("/user/dashboard")
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat login"
@@ -60,6 +60,14 @@ export default function UserLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 p-6">
+      <Link
+        href="/"
+        title="Halaman Utama"
+        className="absolute left-6 top-6 group inline-flex items-center justify-center h-11 w-11 rounded-full bg-white/80 backdrop-blur-sm text-blue-600 hover:bg-blue-600 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
+      >
+        <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
+      </Link>
+
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-blue-900">E-Tilang</h1>

@@ -110,17 +110,23 @@ export default function CreateTicketPage() {
       return
     }
 
+    if (file.size < 1024) {
+      setError("File terlalu kecil atau rusak")
+      return
+    }
+
     setUploading(true)
     setError(null)
 
     try {
       const supabase = createClient()
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) {
-        setError("User tidak ditemukan")
+      if (!user?.id) {
+        setError("User tidak ditemukan. Silakan login kembali.")
         setUploading(false)
         return
       }
@@ -130,6 +136,12 @@ export default function CreateTicketPage() {
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string)
       }
+
+      reader.onerror = () => {
+        setError("Gagal membaca file. Coba file lain.")
+        setUploading(false)
+      }
+
       reader.readAsDataURL(file)
 
       const formDataToUpload = new FormData()
@@ -149,11 +161,16 @@ export default function CreateTicketPage() {
       clearTimeout(timeout)
 
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
+        const errorData = await uploadResponse.json().catch(() => ({ error: "Upload failed" }))
         throw new Error(errorData.error || "Upload failed")
       }
 
       const { publicUrl } = await uploadResponse.json()
+
+      if (!publicUrl) {
+        throw new Error("URL foto tidak valid")
+      }
+
       setFormData((prev) => ({ ...prev, evidencePhoto: publicUrl }))
       console.log("[v0] Upload successful:", publicUrl)
     } catch (err: any) {
@@ -161,7 +178,7 @@ export default function CreateTicketPage() {
       if (err.name === "AbortError") {
         setError("Upload timeout - koneksi lambat, coba lagi")
       } else {
-        setError("Gagal mengupload foto: " + err.message)
+        setError("Gagal mengupload foto: " + (err.message || "Kesalahan tidak diketahui"))
       }
     } finally {
       setUploading(false)
@@ -173,7 +190,31 @@ export default function CreateTicketPage() {
     setIsLoading(true)
     setError(null)
 
-    if (!formData.evidencePhoto) {
+    if (!formData.userId?.trim()) {
+      setError("Pilih masyarakat terlebih dahulu")
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.vehicleId?.trim()) {
+      setError("Pilih kendaraan terlebih dahulu")
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.violationId?.trim()) {
+      setError("Pilih jenis pelanggaran terlebih dahulu")
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.location?.trim()) {
+      setError("Isi lokasi pelanggaran")
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.evidencePhoto?.trim()) {
       setError("Foto bukti pelanggaran wajib diupload")
       setIsLoading(false)
       return
@@ -184,8 +225,8 @@ export default function CreateTicketPage() {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
-      setError("User tidak ditemukan")
+    if (!user?.id) {
+      setError("User tidak ditemukan. Silakan login kembali.")
       setIsLoading(false)
       return
     }
@@ -199,13 +240,13 @@ export default function CreateTicketPage() {
       violation_id: formData.violationId,
       petugas_id: user.id,
       location: formData.location,
-      evidence_photo_url: formData.evidencePhoto || null,
+      evidence_photo_url: formData.evidencePhoto,
       fine_amount: selectedViolation?.max_fine || 0,
       status: "unpaid",
     })
 
     if (insertError) {
-      setError(insertError.message)
+      setError(insertError.message || "Gagal membuat tilang")
       setIsLoading(false)
       return
     }

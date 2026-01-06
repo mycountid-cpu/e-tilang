@@ -13,7 +13,7 @@ export default function RegisterSuccessPage() {
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
             <CardTitle className="text-2xl">Pendaftaran Berhasil!</CardTitle>
-            <CardDescription>Akun Anda telah berhasil dibuat. Silakan cek email Anda untuk verifikasi.</CardDescription>
+            <CardDescription>Email Anda telah diverifikasi. Silakan login untuk melanjutkan.</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Button asChild className="w-full">

@@ -249,14 +249,14 @@ export default function CreateTicketPage() {
                 <SelectTrigger className="h-11 md:h-10">
                   <SelectValue placeholder={isFetchingUsers ? "Memuat masyarakat..." : "Pilih masyarakat"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[280px] md:max-w-full">
                   {isFetchingUsers ? (
                     <div className="p-2 text-center text-sm text-muted-foreground">Memuat data...</div>
                   ) : users.length === 0 ? (
                     <div className="p-2 text-center text-sm text-muted-foreground">Tidak ada masyarakat ditemukan</div>
                   ) : (
                     users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
+                      <SelectItem key={user.id} value={user.id} className="truncate text-sm">
                         {user.full_name} - {user.nik}
                       </SelectItem>
                     ))
@@ -283,9 +283,9 @@ export default function CreateTicketPage() {
                 <SelectTrigger className="h-11 md:h-10">
                   <SelectValue placeholder={formData.userId ? "Pilih kendaraan" : "Pilih masyarakat terlebih dahulu"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[280px] md:max-w-full">
                   {filteredVehicles.map((vehicle) => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                    <SelectItem key={vehicle.id} value={vehicle.id} className="truncate text-sm">
                       {vehicle.plate_number} - {vehicle.vehicle_type} {vehicle.brand}
                     </SelectItem>
                   ))}
@@ -310,9 +310,9 @@ export default function CreateTicketPage() {
                 <SelectTrigger className="h-11 md:h-10">
                   <SelectValue placeholder="Pilih pelanggaran" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[280px] md:max-w-full">
                   {violations.map((violation) => (
-                    <SelectItem key={violation.id} value={violation.id}>
+                    <SelectItem key={violation.id} value={violation.id} className="truncate text-xs md:text-sm">
                       {violation.name} ({violation.article}) - Rp {violation.max_fine.toLocaleString("id-ID")}
                     </SelectItem>
                   ))}
@@ -320,8 +320,8 @@ export default function CreateTicketPage() {
               </Select>
               {selectedViolation && (
                 <div className="rounded-lg bg-primary/5 p-3 text-sm">
-                  <p className="font-medium text-primary">{selectedViolation.article}</p>
-                  <p className="text-primary/80">
+                  <p className="font-medium text-primary text-xs md:text-sm">{selectedViolation.article}</p>
+                  <p className="text-primary/80 text-xs md:text-sm">
                     Denda Maksimal: Rp {selectedViolation.max_fine.toLocaleString("id-ID")}
                   </p>
                 </div>
@@ -369,13 +369,13 @@ export default function CreateTicketPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 md:gap-4">
                     <Label
                       htmlFor="camera-upload"
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 transition-colors hover:bg-muted/50"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 md:p-6 transition-colors hover:bg-muted/50"
                     >
-                      <Camera className="mb-2 h-8 w-8 text-muted-foreground" />
-                      <span className="text-xs font-medium">Ambil Foto</span>
+                      <Camera className="mb-2 h-6 md:h-8 w-6 md:w-8 text-muted-foreground" />
+                      <span className="text-xs font-medium text-center">Ambil Foto</span>
                       <input
                         id="camera-upload"
                         type="file"
@@ -388,10 +388,10 @@ export default function CreateTicketPage() {
                     </Label>
                     <Label
                       htmlFor="file-upload"
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 transition-colors hover:bg-muted/50"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 md:p-6 transition-colors hover:bg-muted/50"
                     >
-                      <ImageIconLucide className="mb-2 h-8 w-8 text-muted-foreground" />
-                      <span className="text-xs font-medium">Upload Galeri</span>
+                      <ImageIconLucide className="mb-2 h-6 md:h-8 w-6 md:w-8 text-muted-foreground" />
+                      <span className="text-xs font-medium text-center">Upload Galeri</span>
                       <input
                         id="file-upload"
                         type="file"
@@ -430,11 +430,11 @@ export default function CreateTicketPage() {
               </div>
             )}
 
-            <div className="flex flex-col gap-3 pt-2 md:flex-row md:gap-4">
-              <Button type="submit" disabled={isLoading} className="h-11 md:h-10">
+            <div className="flex flex-col gap-2 md:gap-3 pt-2 md:pt-4">
+              <Button type="submit" disabled={isLoading} className="h-10 md:h-10 w-full">
                 {isLoading ? "Menyimpan..." : "Buat Tilang"}
               </Button>
-              <Button type="button" variant="outline" asChild className="h-11 md:h-10 bg-transparent">
+              <Button type="button" variant="outline" asChild className="h-10 md:h-10 w-full bg-transparent">
                 <Link href="/petugas/dashboard">Batal</Link>
               </Button>
             </div>

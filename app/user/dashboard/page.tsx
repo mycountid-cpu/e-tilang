@@ -173,43 +173,43 @@ export default function UserDashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground md:text-base">Selamat datang kembali, {profileName}</p>
       </div>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-2 md:gap-4 lg:grid-cols-3">
         <Card className="shadow-sm">
-          <CardContent className="p-4 md:p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-muted-foreground md:text-sm">Total Kendaraan</p>
-                <p className="mt-1 text-2xl font-bold text-foreground md:mt-2 md:text-3xl">{stats.vehicles}</p>
+                <p className="truncate text-xs font-medium text-muted-foreground">Total Kendaraan</p>
+                <p className="mt-1 text-xl font-bold text-foreground md:mt-2 md:text-3xl">{stats.vehicles}</p>
               </div>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 md:h-12 md:w-12">
-                <Car className="h-5 w-5 text-primary md:h-6 md:w-6" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 md:h-12 md:w-12">
+                <Car className="h-4 w-4 text-primary md:h-6 md:w-6" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardContent className="p-4 md:p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-muted-foreground md:text-sm">Total Tilang</p>
-                <p className="mt-1 text-2xl font-bold text-foreground md:mt-2 md:text-3xl">{stats.tickets}</p>
+                <p className="truncate text-xs font-medium text-muted-foreground">Total Tilang</p>
+                <p className="mt-1 text-xl font-bold text-foreground md:mt-2 md:text-3xl">{stats.tickets}</p>
               </div>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted md:h-12 md:w-12">
-                <FileText className="h-5 w-5 text-muted-foreground md:h-6 md:w-6" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted md:h-12 md:w-12">
+                <FileText className="h-4 w-4 text-muted-foreground md:h-6 md:w-6" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-2 shadow-sm lg:col-span-1">
-          <CardContent className="p-4 md:p-6">
+        <Card className="col-span-2 shadow-sm md:col-span-1">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-muted-foreground md:text-sm">Belum Dibayar</p>
+                <p className="truncate text-xs font-medium text-muted-foreground">Belum Dibayar</p>
                 <p
                   className={cn(
-                    "mt-1 text-2xl font-bold md:mt-2 md:text-3xl",
+                    "mt-1 text-xl font-bold md:mt-2 md:text-3xl",
                     stats.unpaid > 0 ? "text-destructive" : "text-foreground",
                   )}
                 >
@@ -218,14 +218,14 @@ export default function UserDashboardPage() {
               </div>
               <div
                 className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-12 md:w-12",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full md:h-12 md:w-12",
                   stats.unpaid > 0 ? "bg-destructive/10" : "bg-success/10",
                 )}
               >
                 {stats.unpaid > 0 ? (
-                  <AlertCircle className="h-5 w-5 text-destructive md:h-6 md:w-6" />
+                  <AlertCircle className="h-4 w-4 text-destructive md:h-6 md:w-6" />
                 ) : (
-                  <CheckCircle2 className="h-5 w-5 text-success md:h-6 md:w-6" />
+                  <CheckCircle2 className="h-4 w-4 text-success md:h-6 md:w-6" />
                 )}
               </div>
             </div>
@@ -321,7 +321,9 @@ export default function UserDashboardPage() {
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground md:text-base">{ticket.ticket_code}</p>
+                      <p className="truncate text-sm font-semibold text-foreground md:text-base">
+                        {ticket.ticket_code}
+                      </p>
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",

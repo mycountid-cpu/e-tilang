@@ -119,14 +119,16 @@ export default function UserTicketsPage() {
               {tickets.map((ticket: Ticket) => (
                 <div
                   key={ticket.id}
-                  className="flex flex-col gap-3 rounded-lg border border-border p-4 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-border p-3 md:flex-row md:items-center md:justify-between md:p-4"
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-foreground">{ticket.ticket_code}</p>
+                      <p className="truncate font-semibold text-foreground text-sm md:text-base">
+                        {ticket.ticket_code}
+                      </p>
                       {getStatusBadge(ticket.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground">{ticket.violation?.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">{ticket.violation?.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(ticket.ticket_date).toLocaleDateString("id-ID", {
                         day: "numeric",
@@ -136,14 +138,16 @@ export default function UserTicketsPage() {
                       • {ticket.vehicle?.plate_number}
                     </p>
                   </div>
-                  <div className="flex items-center justify-between gap-3 md:flex-col md:items-end">
-                    <p className="text-lg font-bold text-foreground">Rp {ticket.fine_amount.toLocaleString("id-ID")}</p>
-                    <div className="flex gap-2">
-                      <Button asChild variant="outline" size="sm">
+                  <div className="flex items-center justify-between gap-2 md:flex-col md:items-end">
+                    <p className="text-base font-bold text-foreground md:text-lg">
+                      Rp {ticket.fine_amount.toLocaleString("id-ID")}
+                    </p>
+                    <div className="flex gap-1.5 md:gap-2">
+                      <Button asChild variant="outline" size="sm" className="text-xs md:text-sm bg-transparent">
                         <Link href={`/user/tickets/${ticket.id}`}>Detail</Link>
                       </Button>
                       {(ticket.status === "unpaid" || ticket.status === "payment_rejected") && (
-                        <Button asChild size="sm">
+                        <Button asChild size="sm" className="text-xs md:text-sm">
                           <Link href={`/user/tickets/${ticket.id}`}>
                             {ticket.status === "payment_rejected" ? "Upload Ulang" : "Bayar"}
                           </Link>

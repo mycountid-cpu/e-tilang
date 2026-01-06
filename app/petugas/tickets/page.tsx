@@ -197,7 +197,7 @@ export default function ManageTicketsPage() {
               <SelectTrigger className="h-11 w-full md:h-10 md:w-48">
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-w-[280px]">
                 <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="unpaid">Belum Dibayar</SelectItem>
                 <SelectItem value="pending_confirmation">Perlu Verifikasi</SelectItem>
@@ -230,20 +230,22 @@ export default function ManageTicketsPage() {
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground md:text-base">{ticket.ticket_code}</p>
+                        <p className="truncate text-sm font-semibold text-foreground md:text-base">
+                          {ticket.ticket_code}
+                        </p>
                         {getStatusBadge(ticket.status)}
                       </div>
                       <div className="grid gap-1 text-xs md:text-sm">
-                        <p className="text-muted-foreground">
+                        <p className="truncate text-muted-foreground">
                           <span className="font-medium text-foreground">Pelanggar:</span> {ticket.user?.full_name}
                         </p>
-                        <p className="text-muted-foreground">
+                        <p className="truncate text-muted-foreground">
                           <span className="font-medium text-foreground">Kendaraan:</span> {ticket.vehicle?.plate_number}
                         </p>
-                        <p className="text-muted-foreground">
+                        <p className="truncate text-muted-foreground">
                           <span className="font-medium text-foreground">Pelanggaran:</span> {ticket.violation?.name}
                         </p>
-                        <p className="text-muted-foreground">
+                        <p className="truncate text-muted-foreground">
                           <span className="font-medium text-foreground">Lokasi:</span> {ticket.location}
                         </p>
                         <p className="text-[10px] text-muted-foreground md:text-xs">

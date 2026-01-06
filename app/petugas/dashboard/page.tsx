@@ -29,8 +29,8 @@ function DashboardSkeleton() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="mt-2 h-4 w-32" />
       </div>
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 md:grid-cols-3">
+        {[...Array(5)].map((_, i) => (
           <Card key={i} className="shadow-sm">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between gap-2">
@@ -151,7 +151,7 @@ export default function PetugasDashboardPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 md:grid-cols-3">
         <Card className="shadow-sm">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between gap-2">
@@ -268,7 +268,9 @@ export default function PetugasDashboardPage() {
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground md:text-base">{ticket.ticket_code}</p>
+                      <p className="truncate text-sm font-semibold text-foreground md:text-base">
+                        {ticket.ticket_code}
+                      </p>
                       <span
                         className={cn(
                           "rounded-full px-2 py-0.5 text-xs font-medium",

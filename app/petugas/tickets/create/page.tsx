@@ -147,6 +147,12 @@ export default function CreateTicketPage() {
     setIsLoading(true)
     setError(null)
 
+    if (!formData.evidencePhoto) {
+      setError("Foto bukti pelanggaran wajib diupload")
+      setIsLoading(false)
+      return
+    }
+
     const supabase = createClient()
     const {
       data: { user },
@@ -318,7 +324,9 @@ export default function CreateTicketPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Bukti Foto Pelanggaran</Label>
+              <Label className="text-sm font-medium">
+                Bukti Foto Pelanggaran <span className="text-destructive">*</span>
+              </Label>
               <div className="flex flex-col gap-4">
                 {previewUrl ? (
                   <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted">
@@ -373,7 +381,7 @@ export default function CreateTicketPage() {
                 )}
                 {uploading && <p className="text-xs text-primary animate-pulse">Sedang mengupload...</p>}
                 <p className="text-xs text-muted-foreground">
-                  Format: JPG/PNG, Maksimal 5MB. Foto digunakan sebagai bukti.
+                  Format: JPG/PNG, Maksimal 5MB. Foto digunakan sebagai bukti dan akan ditampilkan kepada masyarakat.
                 </p>
               </div>
             </div>

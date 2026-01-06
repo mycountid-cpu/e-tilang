@@ -7,7 +7,6 @@ export async function updateSession(request: NextRequest) {
   })
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn("[v0] Supabase not configured in middleware - skipping auth checks")
     return supabaseResponse
   }
 

@@ -30,10 +30,9 @@ interface PaymentSectionProps {
 }
 
 const QR_MAPPING: Record<number, string> = {
-  250000: "/images/250.000.jpg",
-  500000: "/images/500.000.jpg",
-  750000: "/images/750.000.jpg",
-  1000000: "/images/1.000.000.jpg",
+  250000: "/images/250.jpg",
+  500000: "/images/500.jpg",
+  1000000: "/images/1.jpg",
 }
 
 export function PaymentSection({
@@ -104,36 +103,51 @@ export function PaymentSection({
     const supabase = createClient()
 
     try {
+      console.log("[v0] Starting payment proof upload for ticket:", ticketId)
+
       // Upload to Supabase Storage
       const fileExt = selectedFile.name.split(".").pop()
       const fileName = `${ticketId}-${Date.now()}.${fileExt}`
       const filePath = `payment-proofs/${fileName}`
 
+      console.log("[v0] Uploading file to storage:", filePath)
       const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(filePath, selectedFile)
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        console.log("[v0] Storage upload error:", uploadError)
+        throw uploadError
+      }
 
       // Get public URL
       const {
         data: { publicUrl },
       } = supabase.storage.from("payment-proofs").getPublicUrl(filePath)
 
-      // Update ticket with payment proof and status
+      console.log("[v0] Generated public URL:", publicUrl)
+
       const { error: updateError } = await supabase
         .from("tickets")
         .update({
           payment_proof_url: publicUrl,
           status: "pending_confirmation",
           payment_method: "DANA (QR Scan)",
+          paid_at: new Date().toISOString(),
         })
         .eq("id", ticketId)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.log("[v0] Database update error:", updateError)
+        throw updateError
+      }
 
+      console.log("[v0] Payment proof uploaded successfully and ticket updated")
       toast.success("Bukti pembayaran berhasil diunggah! Menunggu verifikasi petugas.")
       setIsOpen(false)
+      setSelectedFile(null)
+      setPreviewUrl(null)
       router.refresh()
     } catch (error: any) {
+      console.log("[v0] Upload error:", error.message)
       toast.error("Gagal mengunggah bukti: " + error.message)
     } finally {
       setIsUploading(false)

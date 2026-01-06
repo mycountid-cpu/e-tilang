@@ -5,7 +5,7 @@
 ALTER TABLE IF EXISTS profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS vehicles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS tickets DISABLE ROW LEVEL SECURITY;
--- removed payments table reference as it does not exist
+ALTER TABLE IF EXISTS payments DISABLE ROW LEVEL SECURITY;
 
 -- Step 2: Drop ALL existing policies
 DO $$ 
@@ -30,14 +30,18 @@ BEGIN
         EXECUTE format('DROP POLICY IF EXISTS %I ON tickets', pol.policyname);
     END LOOP;
     
-    -- removed payments loop
+    -- Drop all policies on payments
+    FOR pol IN SELECT policyname FROM pg_policies WHERE tablename = 'payments'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON payments', pol.policyname);
+    END LOOP;
 END $$;
 
 -- Step 3: Re-enable RLS
 ALTER TABLE IF EXISTS profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS tickets ENABLE ROW LEVEL SECURITY;
--- removed payments table re-enable
+ALTER TABLE IF EXISTS payments ENABLE ROW LEVEL SECURITY;
 
 -- Step 4: Create simple, non-recursive policies
 
@@ -83,4 +87,18 @@ CREATE POLICY "tickets_update" ON tickets
         OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'petugas'
     );
 
--- removed payments policies
+-- PAYMENTS: User can manage their own, petugas can view all
+CREATE POLICY "payments_select" ON payments
+    FOR SELECT USING (
+        auth.uid() = user_id 
+        OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'petugas'
+    );
+
+CREATE POLICY "payments_insert_own" ON payments
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "payments_update" ON payments
+    FOR UPDATE USING (
+        auth.uid() = user_id 
+        OR (auth.jwt() -> 'user_metadata' ->> 'role') = 'petugas'
+    );

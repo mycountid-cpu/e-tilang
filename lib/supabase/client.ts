@@ -5,19 +5,15 @@ let supabaseClient: ReturnType<typeof createBrowserClient> | null = null
 export function createClient() {
   if (supabaseClient) return supabaseClient
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn(
-      "[v0] Supabase environment variables are missing. Please configure Supabase integration in the sidebar.",
-    )
-    // Return null instead of crashing
+  if (!url || !key) {
+    console.warn("[v0] Supabase credentials not configured. Environment setup required.")
     return null
   }
 
-  console.log("[v0] Creating Supabase browser client")
-  supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  supabaseClient = createBrowserClient(url, key)
 
   return supabaseClient
 }

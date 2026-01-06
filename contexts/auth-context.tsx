@@ -8,62 +8,97 @@ type AuthContextType = {
   user: User | null
   session: Session | null
   isLoading: boolean
+  error: string | null
   signOut: () => Promise<void>
+  isConfigured: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
-  isLoading: true,
+  isLoading: false,
+  error: null,
   signOut: async () => {},
+  isConfigured: false,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isConfigured, setIsConfigured] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
+    console.log("[v0] Initializing AuthProvider")
+    try {
+      const supabase = createClient()
 
-    if (!supabase) {
-      console.warn("[v0] Supabase not configured - continuing without auth")
-      setIsLoading(false)
-      return
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error("[v0] Auth session error:", error.message)
+      if (!supabase) {
+        console.log("[v0] Supabase not configured - showing configuration prompt")
+        setIsConfigured(false)
+        setIsLoading(false)
+        setError(null)
+        return
       }
-      setSession(session)
-      setUser(session?.user ?? null)
-      setIsLoading(false)
-    })
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setIsLoading(false)
-    })
+      setIsConfigured(true)
 
-    return () => {
-      subscription.unsubscribe()
+      // Get initial session
+      supabase.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          console.log("[v0] Initial session retrieved:", session?.user?.id || "none")
+          setSession(session)
+          setUser(session?.user ?? null)
+          setIsLoading(false)
+          setError(null)
+        })
+        .catch((err) => {
+          console.error("[v0] Error retrieving session:", err)
+          setError("Failed to retrieve session")
+          setIsLoading(false)
+        })
+
+      // Listen for auth changes
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log("[v0] Auth state change event:", event)
+        setSession(session)
+        setUser(session?.user ?? null)
+        setIsLoading(false)
+      })
+
+      return () => {
+        console.log("[v0] Cleaning up AuthProvider subscription")
+        subscription.unsubscribe()
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to initialize Supabase"
+      console.error("[v0] AuthProvider initialization error:", errorMessage)
+      setError(errorMessage)
+      setIsLoading(false)
+      setIsConfigured(false)
     }
   }, [])
 
   const signOut = useCallback(async () => {
-    const supabase = createClient()
-    if (supabase) {
-      await supabase.auth.signOut()
+    try {
+      const supabase = createClient()
+      if (supabase) {
+        await supabase.auth.signOut()
+      }
+    } catch (err) {
+      console.error("[v0] Sign out error:", err)
     }
   }, [])
 
-  return <AuthContext.Provider value={{ user, session, isLoading, signOut }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, session, isLoading, error, signOut, isConfigured }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export const useAuth = () => useContext(AuthContext)

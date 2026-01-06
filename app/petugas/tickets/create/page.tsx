@@ -10,83 +10,175 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, AlertCircle } from "lucide-react"
+import { ArrowLeft, AlertCircle, Camera, ImageIcon as ImageIconLucide } from "lucide-react"
 import Link from "next/link"
+import type { Profile, Vehicle, Violation } from "@/lib/types"
 
 export default function CreateTicketPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [masyarakat, setMasyarakat] = useState<any[]>([])
-  const [kendaraan, setKendaraan] = useState<any[]>([])
-  const [pelanggaran, setPelanggaran] = useState<any[]>([])
-  const [selectedUser, setSelectedUser] = useState("")
-  const [selectedVehicle, setSelectedVehicle] = useState("")
-  const [selectedViolation, setSelectedViolation] = useState("")
-  const [location, setLocation] = useState("")
+  const [isFetchingUsers, setIsFetchingUsers] = useState(true)
+
+  // Data lists
+  const [users, setUsers] = useState<Profile[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [violations, setViolations] = useState<Violation[]>([])
+  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([])
+
+  // Form data
+  const [formData, setFormData] = useState({
+    userId: "",
+    vehicleId: "",
+    violationId: "",
+    location: "",
+    evidencePhoto: "",
+  })
+
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null)
 
   useEffect(() => {
-    loadData()
+    const fetchData = async () => {
+      const supabase = createClient()
+      console.log("[v0] Memulai pengambilan data masyarakat...")
+      setIsFetchingUsers(true)
+
+      try {
+        const { data: usersData, error: usersError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("role", "user")
+          .order("full_name", { ascending: true })
+
+        if (usersError) {
+          console.error("[v0] Error mengambil masyarakat:", usersError)
+        } else {
+          console.log("[v0] Data masyarakat ditemukan:", usersData?.length || 0)
+          setUsers(usersData || [])
+        }
+
+        const { data: vehiclesData } = await supabase.from("vehicles").select("*").order("plate_number")
+        const { data: violationsData } = await supabase.from("violations").select("*").order("name")
+
+        setVehicles(vehiclesData || [])
+        setViolations(violationsData || [])
+      } catch (err) {
+        console.error("[v0] Kesalahan tak terduga saat fetch data:", err)
+      } finally {
+        setIsFetchingUsers(false)
+      }
+    }
+
+    fetchData()
   }, [])
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (formData.userId) {
+      const userVehicles = vehicles.filter((v) => v.user_id === formData.userId)
+      setFilteredVehicles(userVehicles)
+    } else {
+      setFilteredVehicles([])
+    }
+  }, [formData.userId, vehicles])
+
+  useEffect(() => {
+    if (formData.violationId) {
+      const violation = violations.find((v) => v.id === formData.violationId)
+      setSelectedViolation(violation || null)
+    } else {
+      setSelectedViolation(null)
+    }
+  }, [formData.violationId, violations])
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validation
+    if (!file.type.startsWith("image/")) {
+      setError("Hanya file gambar yang diperbolehkan (JPG/PNG)")
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Ukuran file maksimal 5MB")
+      return
+    }
+
+    setUploading(true)
+    setError(null)
+
+    const supabase = createClient()
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${Math.random()}-${Date.now()}.${fileExt}`
+    const filePath = `evidence/${fileName}`
+
     try {
-      const supabase = createClient()
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
 
-      const { data: m } = await supabase.from("masyarakat").select("*")
-      if (m) setMasyarakat(m)
+      // Upload to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage.from("evidence").upload(filePath, file)
 
-      const { data: k } = await supabase.from("kendaraan").select("*")
-      if (k) setKendaraan(k)
+      if (uploadError) throw uploadError
 
-      const { data: p } = await supabase.from("pelanggaran").select("*")
-      if (p) setPelanggaran(p)
-    } catch (err) {
-      console.error(err)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("evidence").getPublicUrl(filePath)
+
+      setFormData((prev) => ({ ...prev, evidencePhoto: publicUrl }))
+    } catch (err: any) {
+      console.error("[v0] Upload error:", err)
+      setError("Gagal mengupload foto: " + err.message)
     } finally {
-      setLoading(false)
+      setUploading(false)
     }
   }
-
-  const filteredVehicles = kendaraan.filter((k) => k.masyarakat_id === selectedUser)
-  const selectedViolationData = pelanggaran.find((p) => p.id === selectedViolation)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
 
-    try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-      if (!user) throw new Error("User tidak ditemukan")
-
-      const { error: insertError } = await supabase.from("tickets").insert({
-        ticket_code: `TLG-${Date.now()}`,
-        user_id: selectedUser,
-        vehicle_id: selectedVehicle,
-        violation_id: selectedViolation,
-        petugas_id: user.id,
-        location,
-        fine_amount: selectedViolationData?.denda_maksimal || 0,
-        status: "unpaid",
-      })
-
-      if (insertError) throw insertError
-      router.push("/petugas/tickets")
-    } catch (err: any) {
-      setError(err.message || "Gagal membuat tilang")
-    } finally {
+    if (!user) {
+      setError("User tidak ditemukan")
       setIsLoading(false)
+      return
     }
-  }
 
-  if (loading) {
-    return <div className="p-6">Memuat data...</div>
+    const ticketCode = `TLG-${Date.now()}`
+
+    const { error: insertError } = await supabase.from("tickets").insert({
+      ticket_code: ticketCode,
+      user_id: formData.userId,
+      vehicle_id: formData.vehicleId,
+      violation_id: formData.violationId,
+      petugas_id: user.id,
+      location: formData.location,
+      evidence_photo_url: formData.evidencePhoto || null,
+      fine_amount: selectedViolation?.max_fine || 0,
+      status: "unpaid",
+    })
+
+    if (insertError) {
+      setError(insertError.message)
+      setIsLoading(false)
+      return
+    }
+
+    router.push("/petugas/tickets")
   }
 
   return (
@@ -98,96 +190,219 @@ export default function CreateTicketPage() {
             Kembali
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">Buat Tilang Baru</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Catat pelanggaran lalu lintas</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Buat Tilang Baru</h1>
+        <p className="mt-1 text-sm text-muted-foreground md:text-base">Catat pelanggaran lalu lintas</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Formulir Tilang</CardTitle>
-          <CardDescription>Lengkapi data pelanggaran</CardDescription>
+      <Card className="shadow-sm md:max-w-3xl">
+        <CardHeader className="pb-4 md:pb-6">
+          <CardTitle className="text-base md:text-lg">Formulir Tilang</CardTitle>
+          <CardDescription className="text-xs md:text-sm">Lengkapi data pelanggaran dengan benar</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label>Pilih Masyarakat</Label>
-              <Select value={selectedUser} onValueChange={setSelectedUser} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih masyarakat" />
+          <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="userId" className="text-sm font-medium">
+                Pilih Masyarakat
+              </Label>
+              <Select
+                required
+                value={formData.userId}
+                onValueChange={(value) => {
+                  setFormData({
+                    ...formData,
+                    userId: value,
+                    vehicleId: "",
+                  })
+                }}
+              >
+                <SelectTrigger className="h-11 md:h-10">
+                  <SelectValue placeholder={isFetchingUsers ? "Memuat masyarakat..." : "Pilih masyarakat"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {masyarakat.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.nama} - {m.nik}
+                  {isFetchingUsers ? (
+                    <div className="p-2 text-center text-sm text-muted-foreground">Memuat data...</div>
+                  ) : users.length === 0 ? (
+                    <div className="p-2 text-center text-sm text-muted-foreground">Tidak ada masyarakat ditemukan</div>
+                  ) : (
+                    users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.full_name} - {user.nik}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vehicleId" className="text-sm font-medium">
+                Pilih Kendaraan
+              </Label>
+              <Select
+                required
+                value={formData.vehicleId}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    vehicleId: value,
+                  })
+                }
+                disabled={!formData.userId}
+              >
+                <SelectTrigger className="h-11 md:h-10">
+                  <SelectValue placeholder={formData.userId ? "Pilih kendaraan" : "Pilih masyarakat terlebih dahulu"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredVehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {vehicle.plate_number} - {vehicle.vehicle_type} {vehicle.brand}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <Label>Pilih Kendaraan</Label>
-              <Select value={selectedVehicle} onValueChange={setSelectedVehicle} required disabled={!selectedUser}>
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedUser ? "Pilih kendaraan" : "Pilih masyarakat dulu"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredVehicles.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>
-                      {k.plat_nomor} - {k.merk}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Jenis Pelanggaran</Label>
-              <Select value={selectedViolation} onValueChange={setSelectedViolation} required>
-                <SelectTrigger>
+            <div className="space-y-2">
+              <Label htmlFor="violationId" className="text-sm font-medium">
+                Jenis Pelanggaran
+              </Label>
+              <Select
+                required
+                value={formData.violationId}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    violationId: value,
+                  })
+                }
+              >
+                <SelectTrigger className="h-11 md:h-10">
                   <SelectValue placeholder="Pilih pelanggaran" />
                 </SelectTrigger>
                 <SelectContent>
-                  {pelanggaran.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nama_pelanggaran} - Rp {p.denda_maksimal.toLocaleString("id-ID")}
+                  {violations.map((violation) => (
+                    <SelectItem key={violation.id} value={violation.id}>
+                      {violation.name} ({violation.article}) - Rp {violation.max_fine.toLocaleString("id-ID")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedViolation && (
+                <div className="rounded-lg bg-primary/5 p-3 text-sm">
+                  <p className="font-medium text-primary">{selectedViolation.article}</p>
+                  <p className="text-primary/80">
+                    Denda Maksimal: Rp {selectedViolation.max_fine.toLocaleString("id-ID")}
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div>
-              <Label>Lokasi Pelanggaran</Label>
+            <div className="space-y-2">
+              <Label htmlFor="location" className="text-sm font-medium">
+                Lokasi Pelanggaran
+              </Label>
               <Input
-                placeholder="Jl. Sudirman, Jakarta Pusat"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                id="location"
+                placeholder="Contoh: Jl. Sudirman, Jakarta Pusat"
                 required
+                className="h-11 md:h-10"
+                value={formData.location}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    location: e.target.value,
+                  })
+                }
               />
             </div>
 
-            {selectedViolationData && (
-              <div className="rounded-lg bg-primary/10 p-4">
-                <p className="text-sm font-medium">Total Denda</p>
-                <p className="text-2xl font-bold text-primary">
-                  Rp {selectedViolationData.denda_maksimal.toLocaleString("id-ID")}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Bukti Foto Pelanggaran</Label>
+              <div className="flex flex-col gap-4">
+                {previewUrl ? (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted">
+                    <img src={previewUrl || "/placeholder.svg"} alt="Preview" className="h-full w-full object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute right-2 top-2"
+                      onClick={() => {
+                        setPreviewUrl(null)
+                        setFormData((prev) => ({ ...prev, evidencePhoto: "" }))
+                      }}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <Label
+                      htmlFor="camera-upload"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 transition-colors hover:bg-muted/50"
+                    >
+                      <Camera className="mb-2 h-8 w-8 text-muted-foreground" />
+                      <span className="text-xs font-medium">Ambil Foto</span>
+                      <input
+                        id="camera-upload"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="sr-only"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                      />
+                    </Label>
+                    <Label
+                      htmlFor="file-upload"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 transition-colors hover:bg-muted/50"
+                    >
+                      <ImageIconLucide className="mb-2 h-8 w-8 text-muted-foreground" />
+                      <span className="text-xs font-medium">Upload Galeri</span>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                      />
+                    </Label>
+                  </div>
+                )}
+                {uploading && <p className="text-xs text-primary animate-pulse">Sedang mengupload...</p>}
+                <p className="text-xs text-muted-foreground">
+                  Format: JPG/PNG, Maksimal 5MB. Foto digunakan sebagai bukti.
                 </p>
+              </div>
+            </div>
+
+            {selectedViolation && (
+              <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Denda</p>
+                    <p className="text-2xl font-bold text-primary md:text-3xl">
+                      Rp {selectedViolation.max_fine.toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
             {error && (
               <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4 shrink-0" />
                 {error}
               </div>
             )}
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={isLoading}>
+            <div className="flex flex-col gap-3 pt-2 md:flex-row md:gap-4">
+              <Button type="submit" disabled={isLoading} className="h-11 md:h-10">
                 {isLoading ? "Menyimpan..." : "Buat Tilang"}
               </Button>
-              <Button variant="outline" asChild>
+              <Button type="button" variant="outline" asChild className="h-11 md:h-10 bg-transparent">
                 <Link href="/petugas/dashboard">Batal</Link>
               </Button>
             </div>

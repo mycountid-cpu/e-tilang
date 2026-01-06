@@ -26,6 +26,7 @@ export default function HomePage() {
               <Link href="/auth/petugas/login">Portal Petugas</Link>
             </Button>
           </div>
+          {/* Link ke halaman demo-setup dihapus */}
         </div>
       </div>
 

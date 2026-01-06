@@ -72,33 +72,12 @@ export default function PetugasDashboardPage() {
     if (!user) return
 
     async function loadData() {
-      console.log("[v0] Dashboard loading data for user:", user.id)
-
       const supabase = createClient()
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      let fullName = "Petugas"
-      try {
-        console.log("[v0] Fetching profile for user:", user.id)
-        const profileRes = await supabase.from("profiles").select("full_name").eq("id", user!.id).single()
-
-        console.log("[v0] Profile query result:", { data: profileRes.data, error: profileRes.error })
-
-        if (profileRes.data?.full_name) {
-          fullName = profileRes.data.full_name
-        } else if (user!.user_metadata?.full_name) {
-          fullName = user!.user_metadata.full_name
-        }
-      } catch (error) {
-        console.log("[v0] Profile query error:", error)
-        // RLS error - use fallback name
-        fullName = user!.user_metadata?.full_name || user!.email?.split("@")[0] || "Petugas"
-      }
-
-      console.log("[v0] Using profile name:", fullName)
-
-      const [allTicketsRes, todayTicketsRes, recentRes] = await Promise.all([
+      const [profileRes, allTicketsRes, todayTicketsRes, recentRes] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
         supabase.from("tickets").select("id, status"),
         supabase.from("tickets").select("id").gte("ticket_date", today.toISOString()),
         supabase
@@ -110,13 +89,7 @@ export default function PetugasDashboardPage() {
           .limit(5),
       ])
 
-      console.log("[v0] Tickets loaded:", {
-        total: allTicketsRes.data?.length,
-        today: todayTicketsRes.data?.length,
-        recent: recentRes.data?.length,
-      })
-
-      setProfileName(fullName)
+      setProfileName(profileRes.data?.full_name || user!.user_metadata?.full_name || "Petugas")
 
       const allTickets = allTicketsRes.data || []
       setStats({
@@ -129,8 +102,6 @@ export default function PetugasDashboardPage() {
 
       setRecentTickets((recentRes.data || []) as TicketWithRelations[])
       setIsLoading(false)
-
-      console.log("[v0] Dashboard data loaded successfully")
     }
 
     loadData()
@@ -297,15 +268,11 @@ export default function PetugasDashboardPage() {
                           ticket.status === "paid"
                             ? "bg-success/10 text-success"
                             : ticket.status === "pending_confirmation"
-                              ? "bg-warning/10 text-warning"
-                              : "bg-destructive/10 text-destructive",
+                            ? "bg-warning/10 text-warning"
+                            : "bg-destructive/10 text-destructive",
                         )}
                       >
-                        {ticket.status === "paid"
-                          ? "Lunas"
-                          : ticket.status === "pending_confirmation"
-                            ? "Menunggu Verifikasi"
-                            : "Belum Dibayar"}
+                        {ticket.status === "paid" ? "Lunas" : ticket.status === "pending_confirmation" ? "Menunggu Verifikasi" : "Belum Dibayar"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground md:text-sm">

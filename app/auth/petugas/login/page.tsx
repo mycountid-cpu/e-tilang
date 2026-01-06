@@ -28,17 +28,12 @@ export default function PetugasLoginPage() {
     setError(null)
 
     try {
-      console.log("[v0] Starting login for:", email)
-
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      console.log("[v0] Sign in response:", { hasUser: !!data.user, error: signInError?.message })
-
       if (signInError) {
-        console.log("[v0] Sign in error:", signInError.message)
         if (signInError.message === "Invalid login credentials") {
           throw new Error("Email atau password salah")
         }
@@ -46,18 +41,37 @@ export default function PetugasLoginPage() {
       }
 
       if (data.user) {
-        console.log("[v0] Login successful, redirecting to dashboard")
+        const roleFromMetadata = data.user.user_metadata?.role
 
-        toast({
-          title: "Login berhasil",
-          description: "Selamat datang kembali!",
-        })
+        if (roleFromMetadata) {
+          if (roleFromMetadata !== "petugas") {
+            await supabase.auth.signOut()
+            setError("Akun ini bukan akun petugas. Silakan gunakan portal masyarakat.")
+            return
+          }
+        } else {
+          try {
+            const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single()
 
-        router.replace("/petugas/dashboard")
+            if (profile && profile.role !== "petugas") {
+              await supabase.auth.signOut()
+              setError("Akun ini bukan akun petugas. Silakan gunakan portal masyarakat.")
+              return
+            }
+          } catch (profileErr) {
+            // Continue login even if profile check fails
+          }
+        }
       }
+
+      toast({
+        title: "Login berhasil",
+        description: "Selamat datang kembali!",
+      })
+
+      router.replace("/petugas/dashboard")
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat login"
-      console.log("[v0] Login error:", errorMessage)
       setError(errorMessage)
     } finally {
       setIsLoading(false)

@@ -19,20 +19,14 @@ export async function GET(request: Request) {
       if (user) {
         const role = user.user_metadata?.role
 
-        console.log("[v0] Auth callback - user role:", role) // <CHANGE> Added debug logging
-
         // Redirect based on role
         if (role === "petugas") {
-          console.log("[v0] Redirecting to petugas dashboard") // <CHANGE> Added debug logging
           return NextResponse.redirect(`${origin}/petugas/dashboard`)
         }
-        console.log("[v0] Redirecting to user dashboard") // <CHANGE> Added debug logging
         return NextResponse.redirect(`${origin}/user/dashboard`)
       }
 
       return NextResponse.redirect(`${origin}${next}`)
-    } else {
-      console.error("[v0] Auth code exchange error:", error) // <CHANGE> Added error logging
     }
   }
 

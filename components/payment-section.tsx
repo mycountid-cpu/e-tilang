@@ -30,9 +30,10 @@ interface PaymentSectionProps {
 }
 
 const QR_MAPPING: Record<number, string> = {
-  250000: "/images/250.jpg",
-  500000: "/images/500.jpg",
-  1000000: "/images/1.jpg",
+  250000: "/images/250.000.jpg",
+  500000: "/images/500.000.jpg",
+  750000: "/images/750.000.jpg",
+  1000000: "/images/1.000.000.jpg",
 }
 
 export function PaymentSection({

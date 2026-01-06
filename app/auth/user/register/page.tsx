@@ -66,17 +66,16 @@ export default function UserRegisterPage() {
       if (signUpError) throw signUpError
 
       if (data.user) {
-        const { error: profileError } = await supabase.from("profiles").upsert({
+        const { error: masyarakatError } = await supabase.from("masyarakat").insert({
           id: data.user.id,
+          nama: formData.fullName,
           nik: formData.nik,
-          full_name: formData.fullName,
-          address: formData.address,
-          phone: formData.phone,
-          role: "user",
+          alamat: formData.address,
+          no_hp: formData.phone,
         })
 
-        if (profileError) {
-          console.log("[v0] Profile creation error:", profileError)
+        if (masyarakatError) {
+          console.log("[v0] Masyarakat creation error:", masyarakatError)
         }
       }
 

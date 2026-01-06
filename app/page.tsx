@@ -26,11 +26,6 @@ export default function HomePage() {
               <Link href="/auth/petugas/login">Portal Petugas</Link>
             </Button>
           </div>
-          <div className="mt-6">
-            <Link href="/demo-setup" className="text-sm text-blue-100 hover:text-white underline underline-offset-4">
-              Belum punya akun? Buat akun demo di sini
-            </Link>
-          </div>
         </div>
       </div>
 

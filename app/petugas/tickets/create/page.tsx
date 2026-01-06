@@ -111,11 +111,6 @@ export default function CreateTicketPage() {
     setUploading(true)
     setError(null)
 
-    const supabase = createClient()
-    const fileExt = file.name.split(".").pop()
-    const fileName = `${Math.random()}-${Date.now()}.${fileExt}`
-    const filePath = `evidence/${fileName}`
-
     try {
       // Create preview
       const reader = new FileReader()
@@ -124,15 +119,21 @@ export default function CreateTicketPage() {
       }
       reader.readAsDataURL(file)
 
-      // Upload to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage.from("evidence").upload(filePath, file)
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("bucket", "evidence")
 
-      if (uploadError) throw uploadError
+      const uploadResponse = await fetch("/api/upload-evidence", {
+        method: "POST",
+        body: formData,
+      })
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("evidence").getPublicUrl(filePath)
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json()
+        throw new Error(errorData.error || "Upload failed")
+      }
 
+      const { publicUrl } = await uploadResponse.json()
       setFormData((prev) => ({ ...prev, evidencePhoto: publicUrl }))
     } catch (err: any) {
       console.error("[v0] Upload error:", err)

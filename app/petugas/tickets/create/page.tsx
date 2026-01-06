@@ -10,10 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, AlertCircle, Loader2, ImageIcon, X } from "lucide-react"
+import { ArrowLeft, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
-import { toast } from "sonner"
 
 export default function CreateTicketPage() {
   const router = useRouter()
@@ -27,10 +25,6 @@ export default function CreateTicketPage() {
   const [selectedVehicle, setSelectedVehicle] = useState("")
   const [selectedViolation, setSelectedViolation] = useState("")
   const [location, setLocation] = useState("")
-
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null)
-  const [evidencePreview, setEvidencePreview] = useState<string | null>(null)
-  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -55,35 +49,6 @@ export default function CreateTicketPage() {
     }
   }
 
-  const handleEvidenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-      toast.error("Format file harus JPG atau PNG")
-      return
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal 5MB")
-      return
-    }
-
-    setEvidenceFile(file)
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setEvidencePreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleRemoveEvidence = () => {
-    setEvidenceFile(null)
-    setEvidencePreview(null)
-  }
-
   const filteredVehicles = kendaraan.filter((k) => k.masyarakat_id === selectedUser)
   const selectedViolationData = pelanggaran.find((p) => p.id === selectedViolation)
 
@@ -100,25 +65,6 @@ export default function CreateTicketPage() {
 
       if (!user) throw new Error("User tidak ditemukan")
 
-      let evidencePhotoUrl = null
-
-      if (evidenceFile) {
-        setIsUploadingEvidence(true)
-        const fileExt = evidenceFile.name.split(".").pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-        const filePath = `evidence-photos/${fileName}`
-
-        const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(filePath, evidenceFile)
-
-        if (uploadError) throw new Error(`Gagal upload foto: ${uploadError.message}`)
-
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage.from("payment-proofs").getPublicUrl(filePath)
-
-        evidencePhotoUrl = publicUrlData.publicUrl
-        setIsUploadingEvidence(false)
-      }
-
       const { error: insertError } = await supabase.from("tickets").insert({
         ticket_code: `TLG-${Date.now()}`,
         user_id: selectedUser,
@@ -126,17 +72,14 @@ export default function CreateTicketPage() {
         violation_id: selectedViolation,
         petugas_id: user.id,
         location,
-        evidence_photo_url: evidencePhotoUrl,
         fine_amount: selectedViolationData?.denda_maksimal || 0,
         status: "unpaid",
       })
 
       if (insertError) throw insertError
-      toast.success("Tilang berhasil dibuat!")
       router.push("/petugas/tickets")
     } catch (err: any) {
       setError(err.message || "Gagal membuat tilang")
-      toast.error(err.message || "Gagal membuat tilang")
     } finally {
       setIsLoading(false)
     }
@@ -224,52 +167,6 @@ export default function CreateTicketPage() {
               />
             </div>
 
-            <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <Label className="flex items-center gap-2 text-blue-900">
-                <ImageIcon className="h-4 w-4" />
-                Foto Bukti Pelanggaran (Opsional)
-              </Label>
-              <p className="text-xs text-blue-700">
-                Upload foto untuk dokumentasi pelanggaran yang akan dilihat oleh masyarakat
-              </p>
-
-              {!evidencePreview ? (
-                <div>
-                  <Input
-                    id="evidence-photo"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png"
-                    onChange={handleEvidenceFileChange}
-                    disabled={isUploadingEvidence || isLoading}
-                    className="cursor-pointer"
-                  />
-                  <p className="mt-2 text-xs text-blue-600">Format: JPG/PNG, Maksimal 5MB</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="relative h-48 w-full overflow-hidden rounded-lg border-2 border-blue-200 bg-white">
-                    <Image
-                      src={evidencePreview || "/placeholder.svg"}
-                      alt="Preview Bukti Pelanggaran"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveEvidence}
-                    disabled={isUploadingEvidence || isLoading}
-                    className="w-full bg-transparent"
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Hapus Foto
-                  </Button>
-                </div>
-              )}
-            </div>
-
             {selectedViolationData && (
               <div className="rounded-lg bg-primary/10 p-4">
                 <p className="text-sm font-medium">Total Denda</p>
@@ -287,15 +184,8 @@ export default function CreateTicketPage() {
             )}
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={isLoading || isUploadingEvidence} className="flex items-center gap-2">
-                {isLoading || isUploadingEvidence ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  "Buat Tilang"
-                )}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Menyimpan..." : "Buat Tilang"}
               </Button>
               <Button variant="outline" asChild>
                 <Link href="/petugas/dashboard">Batal</Link>
